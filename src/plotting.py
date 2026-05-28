@@ -1,7 +1,9 @@
+import os
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from PIL import Image
 
 def plot_reporting_cliff(reporting_rates: dict,
                          ci_dict: dict = None,
@@ -90,3 +92,121 @@ def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
     return fig
+
+def resize_with_padding(
+    img: Image.Image,
+    target_size: tuple[int, int]
+) -> Image.Image:
+    """Resizes an image while maintaining its original aspect ratio.
+
+    Adds a white background (padding) to ensure the output image exactly
+    matches the specified target size without any distortion.
+
+    Args:
+        img: The source PIL Image object to be resized.
+        target_size: A tuple of two integers (width, height) representing
+            the desired dimensions of the output image.
+
+    Returns:
+        A new PIL Image object scaled and centered on a white background
+        of the target size.
+    """
+    # Thumbnail scales the image down in-place to fit inside target_size without distortion
+    img.thumbnail(target_size, Image.Resampling.LANCZOS)
+
+    # Create a blank white canvas matching the target dimensions
+    background = Image.new("RGBA", target_size, "white")
+
+    # Calculate the offsets required to center the scaled image on the canvas
+    offset = (
+        (target_size[0] - img.size[0]) // 2,
+        (target_size[1] - img.size[1]) // 2,
+    )
+    background.paste(img, offset)
+    return background
+
+
+def create_composite_figure(
+    source_dir: str,
+    output_dir: str,
+    output_name: str,
+    panel_names: list[str],
+    ext: str = ".png"
+) -> None:
+    """Combines multiple image panels into a single composite figure.
+
+    Handles 4 panels in a 2x2 grid, 3 panels in a 1x3 horizontal row, and
+    2 panels in a 1x2 horizontal row. The size of each panel slot is
+    determined by the dimensions of the first valid image in the panel list.
+    Missing files will abort the process.
+
+    Args:
+        source_dir: The directory path where the source panels are located.
+        output_dir: The directory path where the composite figure will be saved.
+        output_name: The filename of the final composite image to save.
+        panel_names: A list of base filenames (without extensions) to fetch.
+        ext: The file extension of the source images. Defaults to ".png".
+    """
+    images = []
+    for name in panel_names:
+        path = os.path.join(source_dir, f"{name}{ext}")
+        if os.path.exists(path):
+            images.append(Image.open(path))
+        else:
+            print(f"⚠️ Warning: The image {path} is missing. Figure skipped.")
+            return
+
+    # Define the target slot size based on the dimensions of the first panel
+    target_size = images[0].size
+    target_width, target_height = target_size
+
+    # Intelligently resize ALL images (including the first one) to prevent distortion
+    resized_images = [
+        resize_with_padding(img, target_size) for img in images
+    ]
+
+    num_panels: int = len(resized_images)
+
+    # Layout compilation based on panel count
+    if num_panels == 4:
+        # Arrange in a 2x2 grid
+        grid_width = target_width * 2
+        grid_height = target_height * 2
+        new_img = Image.new("RGBA", (grid_width, grid_height), "white")
+
+        new_img.paste(resized_images[0], (0, 0))
+        new_img.paste(resized_images[1], (target_width, 0))
+        new_img.paste(resized_images[2], (0, target_height))
+        new_img.paste(resized_images[3], (target_width, target_height))
+
+    elif num_panels == 3:
+        # Arrange in a single horizontal row (1x3)
+        grid_width = target_width * 3
+        grid_height = target_height
+        new_img = Image.new("RGBA", (grid_width, grid_height), "white")
+
+        new_img.paste(resized_images[0], (0, 0))
+        new_img.paste(resized_images[1], (target_width, 0))
+        new_img.paste(resized_images[2], (target_width * 2, 0))
+
+    elif num_panels == 2:
+        # Arrange in a single horizontal row (1x2)
+        grid_width = target_width * 2
+        grid_height = target_height
+        new_img = Image.new("RGBA", (grid_width, grid_height), "white")
+
+        new_img.paste(resized_images[0], (0, 0))
+        new_img.paste(resized_images[1], (target_width, 0))
+
+    elif num_panels == 1:
+        # Only 1 panel: use the processed single image directly
+        new_img = resized_images[0]
+
+    else:
+        print(f"Unsupported layout: {num_panels} panels.")
+        return
+
+    # Save the composite layout to the main directory
+    output_path = os.path.join(output_dir, output_name)
+    new_img.convert("RGB").save(output_path, quality=95)
+    print(f"{output_name} successfully created.")
