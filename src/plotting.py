@@ -73,6 +73,9 @@ def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
     Returns:
         plt.Figure: The generated matplotlib Figure object containing the Lorenz curve plot.
     """
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot([0, 1], [0, 1], 'k--', linewidth=1, label='Perfect equality')
     ax.fill_between(x, x, y, alpha=0.25, color='steelblue')
@@ -80,48 +83,53 @@ def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
 
     if gini is not None:
         ax.text(0.05, 0.88, f'Gini = {gini:.3f}',
-                transform=ax.transAxes, fontsize=11,
-                bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
+                transform=ax.transAxes, fontsize=9,
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.7, edgecolor='lightgray'))
 
-    ax.set_xlabel('Cumulative share of countries')
-    ax.set_ylabel('Cumulative share of devices')
-    ax.set_title(title)
-    ax.legend()
+    ax.set_xlabel('Cumulative share of countries', fontsize=10)
+    ax.set_ylabel('Cumulative share of devices', fontsize=10)
+    ax.set_title(title, fontsize=10)
+    
+    ax.tick_params(axis='both', labelsize=10)
+    ax.legend(fontsize=10)
+    
     plt.tight_layout()
 
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
     return fig
 
-def resize_with_padding(
+import os
+from typing import List, Tuple
+from PIL import Image
+
+def paste_centered_on_canvas(
     img: Image.Image,
     target_size: tuple[int, int]
 ) -> Image.Image:
-    """Resizes an image while maintaining its original aspect ratio.
+    """Pastes an image onto a larger white canvas without altering its original zoom.
 
-    Adds a white background (padding) to ensure the output image exactly
-    matches the specified target size without any distortion.
+    Centers the provided image on a clean background matching the maximum cell
+    dimensions, which prevents any cropping or aspect ratio distortion.
 
     Args:
-        img: The source PIL Image object to be resized.
-        target_size: A tuple of two integers (width, height) representing
-            the desired dimensions of the output image.
+        img (Image.Image): The source PIL Image instance to be processed.
+        target_size (Tuple[int, int]): A tuple of two integers (width, height)
+            representing the dimensions of the expanded background canvas.
 
     Returns:
-        A new PIL Image object scaled and centered on a white background
-        of the target size.
+        Image.Image: A new RGBA PIL Image object containing the source image
+            centered on a solid white background.
     """
-    # Thumbnail scales the image down in-place to fit inside target_size without distortion
-    img.thumbnail(target_size, Image.Resampling.LANCZOS)
+    # Create a white background canvas matching the maximum required dimensions
+    background: Image.Image = Image.new("RGBA", target_size, "white")
 
-    # Create a blank white canvas matching the target dimensions
-    background = Image.new("RGBA", target_size, "white")
-
-    # Calculate the offsets required to center the scaled image on the canvas
-    offset = (
+    # Compute coordinate offsets to center the source image perfectly
+    offset: Tuple[int, int] = (
         (target_size[0] - img.size[0]) // 2,
         (target_size[1] - img.size[1]) // 2,
     )
+    
     background.paste(img, offset)
     return background
 
@@ -133,80 +141,83 @@ def create_composite_figure(
     panel_names: list[str],
     ext: str = ".png"
 ) -> None:
-    """Combines multiple image panels into a single composite figure.
+    """Combines multiple image panels into a uniform composite grid layout.
 
-    Handles 4 panels in a 2x2 grid, 3 panels in a 1x3 horizontal row, and
-    2 panels in a 1x2 horizontal row. The size of each panel slot is
-    determined by the dimensions of the first valid image in the panel list.
-    Missing files will abort the process.
+    Dynamically determines the maximum bounding width and height among all input
+    panels. This ensures that smaller elements are padded evenly and larger
+    figures are never cropped, preserving the original pixel scale and font sizes.
+    Supported structures include 2x2 grids (4 panels), 1x3 rows (3 panels),
+    and 1x2 rows (2 panels). Missing source files will abort execution.
 
     Args:
-        source_dir: The directory path where the source panels are located.
-        output_dir: The directory path where the composite figure will be saved.
-        output_name: The filename of the final composite image to save.
-        panel_names: A list of base filenames (without extensions) to fetch.
-        ext: The file extension of the source images. Defaults to ".png".
+        source_dir (str): Path to the directory containing the source panels.
+        output_dir (str): Path to the directory where the output file will be saved.
+        output_name (str): Filename of the final compiled composite image.
+        panel_names (List[str]): List of base filenames (without extensions) to fetch.
+        ext (str, optional): The file extension of the source panels. Defaults to ".png".
+
+    Returns:
+        None
     """
-    images = []
+    images: List[Image.Image] = []
     for name in panel_names:
-        path = os.path.join(source_dir, f"{name}{ext}")
+        path: str = os.path.join(source_dir, f"{name}{ext}")
         if os.path.exists(path):
             images.append(Image.open(path))
         else:
-            print(f"⚠️ Warning: The image {path} is missing. Figure skipped.")
+            print(f"⚠️ Warning: The image {path} is missing. Figure compilation aborted.")
             return
 
-    # Define the target slot size based on the dimensions of the first panel
-    target_size = images[0].size
-    target_width, target_height = target_size
+    # Extract the absolute maximum width and height across ALL panel dimensions
+    max_width: int = max(img.size[0] for img in images)
+    max_height: int = max(img.size[1] for img in images)
+    target_size: Tuple[int, int] = (max_width, max_height)
 
-    # Intelligently resize ALL images (including the first one) to prevent distortion
-    resized_images = [
-        resize_with_padding(img, target_size) for img in images
+    # Standardize all panels onto identical non-scaling protective backdrops
+    standardized_images: List[Image.Image] = [
+        paste_centered_on_canvas(img, target_size) for img in images
     ]
 
-    num_panels: int = len(resized_images)
+    num_panels: int = len(standardized_images)
+    new_img: Image.Image
 
-    # Layout compilation based on panel count
+    # Process grid layout placement mapping based on total panel count
     if num_panels == 4:
-        # Arrange in a 2x2 grid
-        grid_width = target_width * 2
-        grid_height = target_height * 2
+        # Assemble panels into a balanced 2x2 matrix
+        grid_width: int = max_width * 2
+        grid_height: int = max_height * 2
         new_img = Image.new("RGBA", (grid_width, grid_height), "white")
-
-        new_img.paste(resized_images[0], (0, 0))
-        new_img.paste(resized_images[1], (target_width, 0))
-        new_img.paste(resized_images[2], (0, target_height))
-        new_img.paste(resized_images[3], (target_width, target_height))
+        new_img.paste(standardized_images[0], (0, 0))
+        new_img.paste(standardized_images[1], (max_width, 0))
+        new_img.paste(standardized_images[2], (0, max_height))
+        new_img.paste(standardized_images[3], (max_width, max_height))
 
     elif num_panels == 3:
-        # Arrange in a single horizontal row (1x3)
-        grid_width = target_width * 3
-        grid_height = target_height
+        # Assemble panels into a single continuous 1x3 horizontal row
+        grid_width = max_width * 3
+        grid_height = max_height
         new_img = Image.new("RGBA", (grid_width, grid_height), "white")
-
-        new_img.paste(resized_images[0], (0, 0))
-        new_img.paste(resized_images[1], (target_width, 0))
-        new_img.paste(resized_images[2], (target_width * 2, 0))
+        new_img.paste(standardized_images[0], (0, 0))
+        new_img.paste(standardized_images[1], (max_width, 0))
+        new_img.paste(standardized_images[2], (max_width * 2, 0))
 
     elif num_panels == 2:
-        # Arrange in a single horizontal row (1x2)
-        grid_width = target_width * 2
-        grid_height = target_height
+        # Assemble panels into a standard 1x2 horizontal row
+        grid_width = max_width * 2
+        grid_height = max_height
         new_img = Image.new("RGBA", (grid_width, grid_height), "white")
-
-        new_img.paste(resized_images[0], (0, 0))
-        new_img.paste(resized_images[1], (target_width, 0))
+        new_img.paste(standardized_images[0], (0, 0))
+        new_img.paste(standardized_images[1], (max_width, 0))
 
     elif num_panels == 1:
-        # Only 1 panel: use the processed single image directly
-        new_img = resized_images[0]
-
+        # Bypass canvas layout assembly for isolated single panel inputs
+        new_img = standardized_images[0]
+        
     else:
-        print(f"Unsupported layout: {num_panels} panels.")
+        print(f"Unsupported layout configuration: {num_panels} panels.")
         return
 
-    # Save the composite layout to the main directory
-    output_path = os.path.join(output_dir, output_name)
+    # Export final figure with unified spatial alignments
+    output_path: str = os.path.join(output_dir, output_name)
     new_img.convert("RGB").save(output_path, quality=95)
-    print(f"{output_name} successfully created.")
+    print(f"{output_name} successfully created!")
