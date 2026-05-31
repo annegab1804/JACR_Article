@@ -30,22 +30,34 @@ def plot_reporting_cliff(reporting_rates: dict,
     rates  = [it[1] for it in sorted_items]
 
     fig, ax = plt.subplots(figsize=(8, max(3, len(labels) * 0.5)))
-    bars = ax.barh(labels, rates, color='steelblue', height=0.55)
+    bars = ax.barh(labels, rates, color='steelblue', edgecolor='steelblue', linewidth=2, height=0.55)
 
     if ci_dict:
         xerr_low  = [rates[i] - ci_dict[labels[i]][0] for i in range(len(labels))]
         xerr_high = [ci_dict[labels[i]][1] - rates[i] for i in range(len(labels))]
         ax.errorbar(rates, labels, xerr=[xerr_low, xerr_high],
-                    fmt='none', color='black', capsize=4, linewidth=1.2)
+                    fmt='none', color='black', capsize=5, linewidth=2.5, capthick=2)
 
     for bar, label, rate in zip(bars, labels, rates):
         text_x_position = ci_dict[label][1] if ci_dict else bar.get_width()
-        ax.text(text_x_position + 0.015, bar.get_y() + bar.get_height() / 2,
-                f'{rate:.1%}', va='center', fontsize=9)
+        ax.text(text_x_position + 0.02, bar.get_y() + bar.get_height() / 2,
+                f'{rate:.1%}', va='center', fontsize=14, weight='bold')
 
-    ax.set_xlim(0, 1.12)
-    ax.set_xlabel('% of devices reporting')
-    ax.set_title(title)
+    ax.set_xlim(0, 1.20)
+    ax.set_xlabel('% of devices reporting', fontsize=14, weight='bold')
+    ax.set_title(title, fontsize=16, weight='bold', pad=15)
+
+    ax.tick_params(axis='both', labelsize=13)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_weight('bold')
+
+    ax.tick_params(axis='both', width=2, length=6)
+
+    ax.spines['bottom'].set_linewidth(2)
+    ax.spines['left'].set_linewidth(2)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
     ax.invert_yaxis()
     plt.tight_layout()
 
@@ -76,22 +88,27 @@ def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
     plt.rcParams['font.family'] = 'sans-serif'
     plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot([0, 1], [0, 1], 'k--', linewidth=1, label='Perfect equality')
+    fig, ax = plt.subplots(figsize=(6.5, 6.5))
+    ax.plot([0, 1], [0, 1], 'k--', linewidth=2, label='Perfect equality')
     ax.fill_between(x, x, y, alpha=0.25, color='steelblue')
-    ax.plot(x, y, color='steelblue', linewidth=2, label='Actual distribution')
+    ax.plot(x, y, color='steelblue', linewidth=3.5, label='Actual distribution')
 
     if gini is not None:
         ax.text(0.05, 0.88, f'Gini = {gini:.3f}',
-                transform=ax.transAxes, fontsize=9,
-                bbox=dict(boxstyle='round', facecolor='white', alpha=0.7, edgecolor='lightgray'))
+                transform=ax.transAxes, fontsize=15, weight='bold',
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.8, edgecolor='gray', linewidth=1.5))
 
-    ax.set_xlabel('Cumulative share of countries', fontsize=10)
-    ax.set_ylabel('Cumulative share of devices', fontsize=10)
-    ax.set_title(title, fontsize=10)
-    
-    ax.tick_params(axis='both', labelsize=10)
-    ax.legend(fontsize=10)
+    ax.set_xlabel('Cumulative share of countries', fontsize=15, weight='bold', labelpad=10)
+    ax.set_ylabel('Cumulative share of devices', fontsize=15, weight='bold', labelpad=10)
+    ax.set_title(title, fontsize=16, weight='bold', pad=15)
+    ax.tick_params(axis='both', labelsize=15, width=2, length=6)
+    ax.legend(fontsize=15, prop={'weight': 'bold'}, loc='lower right')
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_weight('bold')
+    ax.spines['bottom'].set_linewidth(2)
+    ax.spines['left'].set_linewidth(2)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     
     plt.tight_layout()
 
@@ -99,9 +116,6 @@ def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
     return fig
 
-import os
-from typing import List, Tuple
-from PIL import Image
 
 def paste_centered_on_canvas(
     img: Image.Image,
@@ -125,7 +139,7 @@ def paste_centered_on_canvas(
     background: Image.Image = Image.new("RGBA", target_size, "white")
 
     # Compute coordinate offsets to center the source image perfectly
-    offset: Tuple[int, int] = (
+    offset = (
         (target_size[0] - img.size[0]) // 2,
         (target_size[1] - img.size[1]) // 2,
     )
@@ -159,7 +173,7 @@ def create_composite_figure(
     Returns:
         None
     """
-    images: List[Image.Image] = []
+    images = []
     for name in panel_names:
         path: str = os.path.join(source_dir, f"{name}{ext}")
         if os.path.exists(path):
@@ -169,16 +183,16 @@ def create_composite_figure(
             return
 
     # Extract the absolute maximum width and height across ALL panel dimensions
-    max_width: int = max(img.size[0] for img in images)
-    max_height: int = max(img.size[1] for img in images)
-    target_size: Tuple[int, int] = (max_width, max_height)
+    max_width = max(img.size[0] for img in images)
+    max_height = max(img.size[1] for img in images)
+    target_size = (max_width, max_height)
 
     # Standardize all panels onto identical non-scaling protective backdrops
-    standardized_images: List[Image.Image] = [
+    standardized_images = [
         paste_centered_on_canvas(img, target_size) for img in images
     ]
 
-    num_panels: int = len(standardized_images)
+    num_panels = len(standardized_images)
     new_img: Image.Image
 
     # Process grid layout placement mapping based on total panel count
