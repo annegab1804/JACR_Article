@@ -41,13 +41,13 @@ def plot_reporting_cliff(reporting_rates: dict,
     for bar, label, rate in zip(bars, labels, rates):
         text_x_position = ci_dict[label][1] if ci_dict else bar.get_width()
         ax.text(text_x_position + 0.02, bar.get_y() + bar.get_height() / 2,
-                f'{rate:.1%}', va='center', fontsize=14, weight='bold')
+                f'{rate:.1%}', va='center', fontsize=16, weight='bold')
 
     ax.set_xlim(0, 1.20)
-    ax.set_xlabel('% of devices reporting', fontsize=14, weight='bold')
-    ax.set_title(title, fontsize=16, weight='bold', pad=15)
+    ax.set_xlabel('% of devices reporting', fontsize=16, weight='bold')
+    ax.set_title(title, fontsize=18, weight='bold', pad=15)
 
-    ax.tick_params(axis='both', labelsize=13)
+    ax.tick_params(axis='both', labelsize=16)
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_weight('bold')
 
@@ -95,14 +95,14 @@ def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
 
     if gini is not None:
         ax.text(0.05, 0.88, f'Gini = {gini:.3f}',
-                transform=ax.transAxes, fontsize=15, weight='bold',
+                transform=ax.transAxes, fontsize=20, weight='bold',
                 bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.8, edgecolor='gray', linewidth=1.5))
 
-    ax.set_xlabel('Cumulative share of countries', fontsize=15, weight='bold', labelpad=10)
-    ax.set_ylabel('Cumulative share of devices', fontsize=15, weight='bold', labelpad=10)
-    ax.set_title(title, fontsize=16, weight='bold', pad=15)
+    ax.set_xlabel('Cumulative share of countries', fontsize=20, weight='bold', labelpad=10)
+    ax.set_ylabel('Cumulative share of devices', fontsize=20, weight='bold', labelpad=10)
+    ax.set_title(title, fontsize=22, weight='bold', pad=25)
     ax.tick_params(axis='both', labelsize=15, width=2, length=6)
-    ax.legend(fontsize=15, prop={'weight': 'bold'}, loc='lower right')
+    ax.legend(prop={'weight': 'bold','size': 18}, loc='lower right')
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_weight('bold')
     ax.spines['bottom'].set_linewidth(2)
