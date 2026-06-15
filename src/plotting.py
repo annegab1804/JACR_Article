@@ -65,7 +65,6 @@ def plot_reporting_cliff(reporting_rates: dict,
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
     return fig
 
-
 def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
                       gini: float = None,
                       title: str = 'Lorenz curve — company HQ concentration',
@@ -116,7 +115,6 @@ def plot_lorenz_curve(x: np.ndarray, y: np.ndarray,
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
     return fig
 
-
 def paste_centered_on_canvas(
     img: Image.Image,
     target_size: tuple[int, int]
@@ -146,7 +144,6 @@ def paste_centered_on_canvas(
     
     background.paste(img, offset)
     return background
-
 
 def create_composite_figure(
     source_dir: str,

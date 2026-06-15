@@ -40,7 +40,6 @@ def fit_logistic_regression(df: pd.DataFrame, outcome_col: str,
     model = smf.logit(formula, data=df.dropna(subset=[outcome_col] + predictor_cols))
     return model.fit(disp=False)
 
-
 def fit_ordinal_regression(df: pd.DataFrame, outcome_col: str,
                             outcome_order: list, predictor_cols: list) -> object:
     """Ordinal logistic regression (proportional-odds model) via statsmodels.

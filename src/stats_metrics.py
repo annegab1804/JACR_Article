@@ -27,7 +27,6 @@ def wilson_ci(k: int, n: int, z: float = 1.96) -> tuple:
     margin = z * math.sqrt(p_hat * (1 - p_hat) / n + z ** 2 / (4 * n ** 2)) / denom
     return (max(0.0, centre - margin), min(1.0, centre + margin))
 
-
 def reporting_rate_with_ci(series: pd.Series, positive_check) -> dict:
     """Compute a reporting rate and its 95% Wilson CI for a column.
 
@@ -50,7 +49,6 @@ def reporting_rate_with_ci(series: pd.Series, positive_check) -> dict:
     ci_low, ci_high = wilson_ci(k, n)
     return {'rate': rate, 'ci_low': ci_low, 'ci_high': ci_high, 'n': n, 'k': k}
 
-
 def herfindahl_hirschman_index(counts) -> float:
     """Herfindahl–Hirschman Index on a sequence of counts (or a pd.Series).
 
@@ -71,7 +69,6 @@ def herfindahl_hirschman_index(counts) -> float:
     shares = arr / arr.sum()
     return float((shares ** 2).sum() * 10_000)
 
-
 def shannon_diversity(counts) -> float:
     """Shannon diversity index H = −Σ p_i × ln(p_i).
 
@@ -88,7 +85,6 @@ def shannon_diversity(counts) -> float:
         return np.nan
     p = arr / arr.sum()
     return float(-np.sum(p * np.log(p)))
-
 
 def calculate_gini(array) -> float:
     """Gini coefficient of inequality from raw value frequencies.
@@ -108,7 +104,6 @@ def calculate_gini(array) -> float:
     index = np.arange(1, len(arr) + 1)
     n = len(arr)
     return float(((2 * index - n - 1) * arr).sum() / (n * arr.sum()))
-
 
 def lorenz_curve(counts) -> tuple:
     """Compute Lorenz curve coordinates from a counts array.

@@ -20,12 +20,7 @@ GLOBAL_COUNTRY_MAPPING = {
     'EUROPE (FRANCE)': 'FRANCE',
 }
 
-# ---------------------------------------------------------------------------
-# SECTION 0 — NR / null sentinel helpers
-# ---------------------------------------------------------------------------
-
 _NR_TOKENS = {'NR', 'NOT REPORTED', 'NOT SPECIFIED', 'NAN', 'NONE', '', 'N/A', 'NA'}
-
 
 def _is_nr(val) -> bool:
     """Return True if val is any flavour of 'not reported'."""
@@ -34,11 +29,6 @@ def _is_nr(val) -> bool:
     if isinstance(val, float) and math.isnan(val):
         return True
     return str(val).strip().upper() in _NR_TOKENS
-
-
-# ---------------------------------------------------------------------------
-# SECTION A — GENERAL DATE / PATHWAY UTILITIES
-# ---------------------------------------------------------------------------
 
 def extract_decision_year(val) -> str:
     """Extract the 4-digit calendar year from MM/DD/YYYY date strings (field A3).
@@ -74,11 +64,6 @@ def extract_clearance_pathway(pathway) -> str:
     if ';' in pathway_str:
         return pathway_str.split(';')[0].strip().upper()
     return pathway_str.upper()
-
-
-# ---------------------------------------------------------------------------
-# SECTION B — PILLAR 2: HARDWARE & SCANNER INTEROPERABILITY
-# ---------------------------------------------------------------------------
 
 def extract_nb_manufacturers(val) -> float:
     """Extract the count of scanner manufacturers from field F1.
@@ -230,7 +215,6 @@ def extract_param_disclosure(val) -> bool:
             
     return False
 
-
 def extract_j3_score(val) -> float:
     """Safely parse the Scanner_Diversity_Score (J3) to a numeric float."""
     try:
@@ -274,11 +258,6 @@ def clean_comparator_method(val) -> str:
         return 'Standalone'
         
     return 'None/NR'
-
-
-# ---------------------------------------------------------------------------
-# SECTION C — PILLAR 3 & 4: VALIDATION DESIGN & GEOGRAPHY
-# ---------------------------------------------------------------------------
 
 def extract_sample_size(val) -> float:
     """Extract total validation sample size from field D1.
@@ -348,7 +327,6 @@ def extract_countries_c1d(val) -> list:
                 clean_parts.append(mapped)
     return clean_parts
 
-
 def extract_countries_d3(val) -> list:
     """Parse validation-site countries from field D3.
 
@@ -404,7 +382,6 @@ def extract_countries_d3(val) -> list:
 # Alias kept so any legacy call to extract_validation_country() also works
 extract_validation_country = extract_countries_d3
 
-
 def is_public_dataset(val) -> bool:
     """Return True if field C1b mentions a public repository or known public dataset.
 
@@ -438,11 +415,6 @@ def is_public_dataset(val) -> bool:
     ]
     return any(kw in val_str for kw in public_keywords)
 
-
-# ---------------------------------------------------------------------------
-# SECTION D — PILLAR 4 & 5: COMPANY HQ & SITE TYPES
-# ---------------------------------------------------------------------------
-
 def extract_hq_country(val) -> str:
     """Extract the manufacturer's HQ country from field B4.
 
@@ -471,7 +443,6 @@ def extract_hq_country(val) -> str:
         except Exception:
             pass
     return 'NR'
-
 
 def extract_validation_types(val) -> str:
     """Extract site classification (Academic / Community / Mixed) from field D3.
@@ -530,11 +501,6 @@ def extract_validation_types(val) -> str:
             
     return 'nr'
 
-
-# ---------------------------------------------------------------------------
-# SECTION E — PILLAR 6: LINEAGE TRAVERSAL & REGULATORY FLAGS
-# ---------------------------------------------------------------------------
-
 def extract_predicate_year(val) -> float:
     """Extract predicate clearance year from field H1.
 
@@ -560,7 +526,6 @@ def extract_predicate_year(val) -> float:
             pass
     return np.nan
 
-
 def extract_predicate_number(val):
     """Isolate the raw FDA submission ID from field H1.
 
@@ -583,7 +548,6 @@ def extract_predicate_number(val):
             pass
     return None
 
-
 def find_ancestor_chain(predicate_map: dict, submission_number) -> list:
     """Recursively trace the chain of predicates back to the root ancestor.
 
@@ -605,7 +569,6 @@ def find_ancestor_chain(predicate_map: dict, submission_number) -> list:
         chain.append(parent)
         current = str(parent).strip()
     return chain
-
 
 def extract_h3_subflag(val, prefix: str) -> str:
     """Parse a named sub-field out of the semicolon-delimited Regulatory_Flags string (H3).
@@ -644,11 +607,6 @@ def extract_h3_subflag(val, prefix: str) -> str:
         except Exception:
             pass
     return 'NR'
-
-
-# ---------------------------------------------------------------------------
-# SECTION F — PILLAR 1 / CROSS-CUTTING: J SCORE PARSERS
-# ---------------------------------------------------------------------------
 
 def extract_j4_score(val) -> int:
     """Parse the numeric score out of the Overall_Generalizability_Risk (J4) field.
