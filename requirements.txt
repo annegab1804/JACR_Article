@@ -1,0 +1,10 @@
+pandas
+numpy
+matplotlib
+scipy
+statsmodels
+jupyter
+openpyxl
+plotly
+squarify
+networkx
